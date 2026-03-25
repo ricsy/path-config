@@ -15,41 +15,42 @@ class ConfigLoader:
     支持格式：JSON, YAML, TOML
 
     用法：
-        loader = ConfigLoader(paths=[
-            Path("config.yaml"),
-            ("xdg", "myapp/config.yaml"),
-            ("cwd", ".myapp.yaml"),
-        ])
+        loader = ConfigLoader(
+            env_var="MYAPP_CONFIG",
+            path=Path("config.yaml"),
+            xdg="myapp/config.yaml",
+            cwd=".myapp.yaml",
+        )
         config = loader.load()
     """
 
     def __init__(
         self,
         env_var: str | None = None,
-        paths: list[Path | tuple[str, str]] | None = None,
+        path: Path | None = None,
+        xdg: str | None = None,
+        cwd: str | None = None,
         loaders: dict[str, Loader] | None = None,
     ) -> None:
         """初始化配置加载器
 
         Args:
             env_var: 环境变量名，指向配置文件路径（最高优先级）
-            paths: 搜索路径列表，支持 Path 对象或元组 ("xdg"|"cwd", filename)
+            path: 配置文件路径
+            xdg: XDG 配置目录下的文件名
+            cwd: 当前目录下的文件名
             loaders: 文件扩展名到加载器的映射
         """
         self.env_var = env_var
         self.paths: list[Path] = []
         self._loaders = loaders or DEFAULT_LOADERS.copy()
 
-        if paths:
-            for p in paths:
-                if isinstance(p, Path):
-                    self.paths.append(p)
-                else:
-                    scope, filename = p
-                    if scope == "xdg":
-                        self.paths.append(self._xdg_config_path(filename))
-                    elif scope == "cwd":
-                        self.paths.append(Path.cwd() / filename)
+        if path:
+            self.paths.append(path)
+        if xdg:
+            self.paths.append(self._xdg_config_path(xdg))
+        if cwd:
+            self.paths.append(Path.cwd() / cwd)
 
     @staticmethod
     def _xdg_config_path(filename: str) -> Path:
@@ -70,7 +71,9 @@ class ConfigLoader:
 
         搜索顺序：
         1. 环境变量指定的路径（如果设置了 env_var）
-        2. paths 列表中的路径（按添加顺序）
+        2. path 参数
+        3. xdg 参数
+        4. cwd 参数
 
         Args:
             default: 未找到配置时的默认值

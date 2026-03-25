@@ -46,7 +46,7 @@ class TestConfigLoader:
             path = Path(f.name)
 
         try:
-            loader = ConfigLoader(paths=[path])
+            loader = ConfigLoader(path=path)
             result = loader.load()
             assert result == {"format": "json"}
         finally:
@@ -61,7 +61,7 @@ class TestConfigLoader:
             path = Path(f.name)
 
         try:
-            loader = ConfigLoader(paths=[path])
+            loader = ConfigLoader(path=path)
             result = loader.load()
             assert result == {"format": "yaml"}
         finally:
@@ -69,13 +69,13 @@ class TestConfigLoader:
 
     def test_load_xdg_path(self) -> None:
         """测试 XDG 路径"""
-        loader = ConfigLoader(paths=[("xdg", "test.yaml")])
+        loader = ConfigLoader(xdg="test.yaml")
         assert len(loader.paths) == 1
         assert "test.yaml" in str(loader.paths[0])
 
     def test_load_cwd_path(self) -> None:
         """测试当前目录路径"""
-        loader = ConfigLoader(paths=[("cwd", ".test.yaml")])
+        loader = ConfigLoader(cwd=".test.yaml")
         assert len(loader.paths) == 1
         assert loader.paths[0].name == ".test.yaml"
 
@@ -95,7 +95,7 @@ class TestConfigLoader:
 
         try:
             monkeypatch.setenv("TEST_CONFIG_PATH", str(env_path))
-            loader = ConfigLoader(env_var="TEST_CONFIG_PATH", paths=[local_path])
+            loader = ConfigLoader(env_var="TEST_CONFIG_PATH", path=local_path)
             result = loader.load()
             assert result == {"source": "env"}
         finally:
@@ -112,7 +112,7 @@ class TestConfigLoader:
             path = Path(f.name)
 
         try:
-            loader = ConfigLoader(env_var="TEST_CONFIG_PATH", paths=[path])
+            loader = ConfigLoader(env_var="TEST_CONFIG_PATH", path=path)
             result = loader.load()
             assert result == {"fallback": True}
         finally:
@@ -121,7 +121,7 @@ class TestConfigLoader:
     def test_load_default(self, monkeypatch) -> None:
         """测试返回默认值"""
         monkeypatch.delenv("TEST_CONFIG_PATH", raising=False)
-        loader = ConfigLoader(env_var="TEST_CONFIG_PATH", paths=[Path("/nonexistent")])
+        loader = ConfigLoader(env_var="TEST_CONFIG_PATH", path=Path("/nonexistent"))
         result = loader.load(default={"default": True})
         assert result == {"default": True}
 
@@ -134,7 +134,7 @@ class TestConfigLoader:
             path = Path(f.name)
 
         try:
-            loader = ConfigLoader(paths=[path])
+            loader = ConfigLoader(path=path)
             with pytest.raises(ValueError, match="Unsupported file format"):
                 loader.load()
         finally:
@@ -144,13 +144,13 @@ class TestConfigLoader:
 class TestLoadConfig:
     """便捷函数测试"""
 
-    def test_load_from_paths(self) -> None:
-        """测试从路径列表加载"""
+    def test_load_from_path(self) -> None:
+        """测试从路径加载"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_file = Path(tmpdir) / "config.yaml"
             config_file.write_text("key: value", encoding="utf-8")
 
-            result = load_config([config_file])
+            result = load_config(path=config_file)
             assert result == {"key": "value"}
 
     def test_load_env_var(self, monkeypatch) -> None:
@@ -163,14 +163,14 @@ class TestLoadConfig:
             local_file.write_text("source: local", encoding="utf-8")
 
             monkeypatch.setenv("TEST_CONFIG", str(env_file))
-            result = load_config([local_file], env_var="TEST_CONFIG")
+            result = load_config(path=local_file, env_var="TEST_CONFIG")
             assert result == {"source": "env"}
 
     def test_load_default_when_not_found(self, monkeypatch) -> None:
         """测试未找到时返回默认值"""
         monkeypatch.delenv("TEST_CONFIG", raising=False)
         result = load_config(
-            [Path("/nonexistent")], env_var="TEST_CONFIG", default={"default": True}
+            path=Path("/nonexistent"), env_var="TEST_CONFIG", default={"default": True}
         )
         assert result == {"default": True}
 

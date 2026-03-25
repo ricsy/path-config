@@ -29,23 +29,34 @@ def xdg_config_path(filename: str) -> Path:
 
 
 def load_config(
-    paths: list[Path | tuple[str, str]],
+    path: Path | None = None,
+    xdg: str | None = None,
+    cwd: str | None = None,
     env_var: str | None = None,
     default: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """从多个路径加载配置文件
 
-    搜索路径（按顺序优先级）：
+    搜索顺序：
     1. 环境变量指定的路径（如果提供）
-    2. paths 列表中的路径（按顺序）
+    2. path 参数
+    3. xdg 参数
+    4. cwd 参数
 
     Args:
-        paths: 搜索路径列表
+        path: 配置文件路径
+        xdg: XDG 配置目录下的文件名
+        cwd: 当前目录下的文件名
         env_var: 环境变量名，指向配置文件路径
         default: 未找到配置时的默认值
 
     Returns:
         加载的配置字典，未找到返回 default
     """
-    loader = ConfigLoader(env_var=env_var, paths=paths)
+    loader = ConfigLoader(
+        env_var=env_var,
+        path=path,
+        xdg=xdg,
+        cwd=cwd,
+    )
     return loader.load(default=default)
