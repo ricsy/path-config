@@ -6,6 +6,9 @@ on:
 
 jobs:
   release:
-    uses: ricsy/shared-actions/.github/workflows/publish/release-pypi.yml@main
-    with:
-      package-name: path-config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ricsy/shared-actions/.github/actions/pypi@main
+        with:
+          package-dir: src
+          environment: pypi
