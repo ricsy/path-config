@@ -1,6 +1,7 @@
 """测试配置加载"""
 
 import json
+import os
 import tempfile
 from pathlib import Path
 
@@ -46,82 +47,50 @@ class TestConfigLoader:
             path = Path(f.name)
 
         try:
-            loader = ConfigLoader(path=path)
+            loader = ConfigLoader(name=path.name)
+            loader.paths.insert(0, path)  # 插入到首位优先
             result = loader.load()
             assert result == {"format": "json"}
         finally:
             path.unlink()
 
-    def test_load_yaml_file(self) -> None:
-        """测试加载 YAML 文件"""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False, encoding="utf-8"
-        ) as f:
-            yaml.dump({"format": "yaml"}, f)
-            path = Path(f.name)
+    def test_load_name_path(self) -> None:
+        """测试 name 参数作为 cwd 路径"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                config_file = Path(".test.yaml")
+                config_file.write_text("key: value", encoding="utf-8")
 
-        try:
-            loader = ConfigLoader(path=path)
-            result = loader.load()
-            assert result == {"format": "yaml"}
-        finally:
-            path.unlink()
+                loader = ConfigLoader(name=".test.yaml")
+                result = loader.load()
+                assert result == {"key": "value"}
+            finally:
+                os.chdir(old_cwd)
 
     def test_load_xdg_path(self) -> None:
         """测试 XDG 路径"""
-        loader = ConfigLoader(xdg="test.yaml")
-        assert len(loader.paths) == 1
-        assert "test.yaml" in str(loader.paths[0])
-
-    def test_load_cwd_path(self) -> None:
-        """测试当前目录路径"""
-        loader = ConfigLoader(cwd=".test.yaml")
-        assert len(loader.paths) == 1
+        loader = ConfigLoader(name=".test.yaml", xdg="app/config.yaml")
+        assert len(loader.paths) == 2
         assert loader.paths[0].name == ".test.yaml"
+        assert "app" in str(loader.paths[1])
 
     def test_load_env_var_priority(self, monkeypatch) -> None:
         """测试环境变量优先级最高"""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False, encoding="utf-8"
-        ) as f:
-            yaml.dump({"source": "env"}, f)
-            env_path = Path(f.name)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env_file = Path(tmpdir) / "env.yaml"
+            env_file.write_text("source: env", encoding="utf-8")
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False, encoding="utf-8"
-        ) as f:
-            yaml.dump({"source": "local"}, f)
-            local_path = Path(f.name)
-
-        try:
-            monkeypatch.setenv("TEST_CONFIG_PATH", str(env_path))
-            loader = ConfigLoader(env_var="TEST_CONFIG_PATH", path=local_path)
+            monkeypatch.setenv("TEST_CONFIG", str(env_file))
+            loader = ConfigLoader(env="TEST_CONFIG", name=".test.yaml")
             result = loader.load()
             assert result == {"source": "env"}
-        finally:
-            env_path.unlink()
-            local_path.unlink()
-
-    def test_load_fallback(self, monkeypatch) -> None:
-        """测试回退到路径列表"""
-        monkeypatch.delenv("TEST_CONFIG_PATH", raising=False)
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False, encoding="utf-8"
-        ) as f:
-            yaml.dump({"fallback": True}, f)
-            path = Path(f.name)
-
-        try:
-            loader = ConfigLoader(env_var="TEST_CONFIG_PATH", path=path)
-            result = loader.load()
-            assert result == {"fallback": True}
-        finally:
-            path.unlink()
 
     def test_load_default(self, monkeypatch) -> None:
         """测试返回默认值"""
-        monkeypatch.delenv("TEST_CONFIG_PATH", raising=False)
-        loader = ConfigLoader(env_var="TEST_CONFIG_PATH", path=Path("/nonexistent"))
+        monkeypatch.delenv("TEST_CONFIG", raising=False)
+        loader = ConfigLoader(env="TEST_CONFIG")
         result = loader.load(default={"default": True})
         assert result == {"default": True}
 
@@ -134,7 +103,8 @@ class TestConfigLoader:
             path = Path(f.name)
 
         try:
-            loader = ConfigLoader(path=path)
+            loader = ConfigLoader(name=".test.xml")
+            loader.paths.insert(0, path)
             with pytest.raises(ValueError, match="Unsupported file format"):
                 loader.load()
         finally:
@@ -144,14 +114,19 @@ class TestConfigLoader:
 class TestLoadConfig:
     """便捷函数测试"""
 
-    def test_load_from_path(self) -> None:
-        """测试从路径加载"""
+    def test_load_from_name(self) -> None:
+        """测试从 name 加载"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            config_file = Path(tmpdir) / "config.yaml"
-            config_file.write_text("key: value", encoding="utf-8")
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                config_file = Path(".config.yaml")
+                config_file.write_text("key: value", encoding="utf-8")
 
-            result = load_config(path=config_file)
-            assert result == {"key": "value"}
+                result = load_config(name=".config.yaml")
+                assert result == {"key": "value"}
+            finally:
+                os.chdir(old_cwd)
 
     def test_load_env_var(self, monkeypatch) -> None:
         """测试环境变量优先级最高"""
@@ -159,19 +134,14 @@ class TestLoadConfig:
             env_file = Path(tmpdir) / "env.yaml"
             env_file.write_text("source: env", encoding="utf-8")
 
-            local_file = Path(tmpdir) / "local.yaml"
-            local_file.write_text("source: local", encoding="utf-8")
-
             monkeypatch.setenv("TEST_CONFIG", str(env_file))
-            result = load_config(path=local_file, env_var="TEST_CONFIG")
+            result = load_config(env="TEST_CONFIG", name=".config.yaml")
             assert result == {"source": "env"}
 
     def test_load_default_when_not_found(self, monkeypatch) -> None:
         """测试未找到时返回默认值"""
         monkeypatch.delenv("TEST_CONFIG", raising=False)
-        result = load_config(
-            path=Path("/nonexistent"), env_var="TEST_CONFIG", default={"default": True}
-        )
+        result = load_config(env="TEST_CONFIG", default={"default": True})
         assert result == {"default": True}
 
 

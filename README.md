@@ -19,27 +19,20 @@ pip install path-config
 ## 使用
 
 ```python
-from pathlib import Path
 from path_config import ConfigLoader
 
-# 单行初始化
-loader = ConfigLoader(
-    env_var="MYAPP_CONFIG",
-    paths=[
-        Path("config.yaml"),
-        ("xdg", "myapp/config.yaml"),
-        ("cwd", ".myapp.yaml"),
-    ]
-)
-
+# 简单用法：当前目录 + XDG 目录
+loader = ConfigLoader(name=".myapp.yaml", xdg="app/config.yaml")
 config = loader.load(default={"debug": False})
 ```
 
-### 路径格式
+### 参数说明
 
-- `Path` 对象：直接使用
-- `("xdg", filename)`：XDG 配置目录
-- `("cwd", filename)`：当前目录
+| 参数     | 说明                      |
+|--------|-------------------------|
+| `name` | 当前目录下的配置文件名（默认 `.yaml`） |
+| `xdg`  | XDG 配置目录下的路径            |
+| `env`  | 环境变量名，指向配置文件路径（最高优先级）   |
 
 ### XDG 配置路径
 
@@ -61,13 +54,14 @@ config = loader.load(default={"debug": False})
 class ConfigLoader:
     def __init__(
         self,
-        env_var: str | None = None,
-        paths: list[Path | tuple[str, str]] | None = None,
+        name: str | None = None,
+        xdg: str | None = None,
+        env: str | None = None,
         loaders: dict | None = None,
     ): ...
     def load(self, default: dict | None = None) -> dict | None: ...
 ```
 
-### load_config(paths, env_var=None, default=None)
+### load_config(name=None, xdg=None, env=None, default=None)
 
 便捷函数。

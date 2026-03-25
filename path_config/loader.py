@@ -15,42 +15,33 @@ class ConfigLoader:
     支持格式：JSON, YAML, TOML
 
     用法：
-        loader = ConfigLoader(
-            env_var="MYAPP_CONFIG",
-            path=Path("config.yaml"),
-            xdg="myapp/config.yaml",
-            cwd=".myapp.yaml",
-        )
+        loader = ConfigLoader(name=".myapp.yaml", xdg="app/config.yaml")
         config = loader.load()
     """
 
     def __init__(
         self,
-        env_var: str | None = None,
-        path: Path | None = None,
+        name: str | None = None,
         xdg: str | None = None,
-        cwd: str | None = None,
+        env: str | None = None,
         loaders: dict[str, Loader] | None = None,
     ) -> None:
         """初始化配置加载器
 
         Args:
-            env_var: 环境变量名，指向配置文件路径（最高优先级）
-            path: 配置文件路径
-            xdg: XDG 配置目录下的文件名
-            cwd: 当前目录下的文件名
+            name: 配置文件名（当前目录，默认）
+            xdg: XDG 配置目录下的路径
+            env: 环境变量名，指向配置文件路径（最高优先级）
             loaders: 文件扩展名到加载器的映射
         """
-        self.env_var = env_var
+        self.env = env
         self.paths: list[Path] = []
         self._loaders = loaders or DEFAULT_LOADERS.copy()
 
-        if path:
-            self.paths.append(path)
+        if name:
+            self.paths.append(Path.cwd() / name)
         if xdg:
             self.paths.append(self._xdg_config_path(xdg))
-        if cwd:
-            self.paths.append(Path.cwd() / cwd)
 
     @staticmethod
     def _xdg_config_path(filename: str) -> Path:
@@ -70,10 +61,9 @@ class ConfigLoader:
         """加载配置
 
         搜索顺序：
-        1. 环境变量指定的路径（如果设置了 env_var）
-        2. path 参数
-        3. xdg 参数
-        4. cwd 参数
+        1. 环境变量指定的路径（如果设置了 env）
+        2. name 指定的路径（当前目录）
+        3. xdg 指定的路径
 
         Args:
             default: 未找到配置时的默认值
@@ -82,7 +72,7 @@ class ConfigLoader:
             加载的配置字典，未找到返回 default
         """
         # 优先级 1：环境变量
-        if self.env_var and (env_path := os.environ.get(self.env_var)):
+        if self.env and (env_path := os.environ.get(self.env)):
             p = Path(env_path)
             if p.exists():
                 return self._load_file(p)
