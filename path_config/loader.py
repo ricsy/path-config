@@ -15,41 +15,41 @@ class ConfigLoader:
     支持格式：JSON, YAML, TOML
 
     用法：
-        loader = ConfigLoader()
-        loader.add_path(Path("config.yaml"))
-        loader.add_xdg_path("myapp.yaml")
+        loader = ConfigLoader(paths=[
+            Path("config.yaml"),
+            ("xdg", "myapp/config.yaml"),
+            ("cwd", ".myapp.yaml"),
+        ])
         config = loader.load()
     """
 
     def __init__(
         self,
         env_var: str | None = None,
+        paths: list[Path | tuple[str, str]] | None = None,
         loaders: dict[str, Loader] | None = None,
     ) -> None:
         """初始化配置加载器
 
         Args:
             env_var: 环境变量名，指向配置文件路径（最高优先级）
+            paths: 搜索路径列表，支持 Path 对象或元组 ("xdg"|"cwd", filename)
             loaders: 文件扩展名到加载器的映射
         """
         self.env_var = env_var
         self.paths: list[Path] = []
         self._loaders = loaders or DEFAULT_LOADERS.copy()
 
-    def add_path(self, path: Path) -> "ConfigLoader":
-        """添加搜索路径"""
-        self.paths.append(path)
-        return self
-
-    def add_xdg_path(self, filename: str) -> "ConfigLoader":
-        """添加 XDG 配置目录下的文件路径"""
-        self.paths.append(self._xdg_config_path(filename))
-        return self
-
-    def add_cwd_path(self, filename: str) -> "ConfigLoader":
-        """添加当前目录下的文件路径"""
-        self.paths.append(Path.cwd() / filename)
-        return self
+        if paths:
+            for p in paths:
+                if isinstance(p, Path):
+                    self.paths.append(p)
+                else:
+                    scope, filename = p
+                    if scope == "xdg":
+                        self.paths.append(self._xdg_config_path(filename))
+                    elif scope == "cwd":
+                        self.paths.append(Path.cwd() / filename)
 
     @staticmethod
     def _xdg_config_path(filename: str) -> Path:
@@ -70,7 +70,7 @@ class ConfigLoader:
 
         搜索顺序：
         1. 环境变量指定的路径（如果设置了 env_var）
-        2. 通过 add_path/add_xdg_path/add_cwd_path 添加的路径
+        2. paths 列表中的路径（按添加顺序）
 
         Args:
             default: 未找到配置时的默认值

@@ -29,7 +29,7 @@ def xdg_config_path(filename: str) -> Path:
 
 
 def load_config(
-    paths: list[Path],
+    paths: list[Path | tuple[str, str]],
     env_var: str | None = None,
     default: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
@@ -47,7 +47,5 @@ def load_config(
     Returns:
         加载的配置字典，未找到返回 default
     """
-    loader = ConfigLoader(env_var=env_var)
-    for p in paths:
-        loader.add_path(p)
+    loader = ConfigLoader(env_var=env_var, paths=paths)
     return loader.load(default=default)
