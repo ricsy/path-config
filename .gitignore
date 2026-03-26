@@ -63,3 +63,4 @@ dmypy.json
 
 Makefile
 .claude
+.python-version
