@@ -3,7 +3,7 @@
 支持 JSON、YAML、TOML 格式，兼容 Linux、macOS、Windows。
 """
 
-from ._version import __version__ as _version
+from .__version__ import __version__
 from .loader import ConfigLoader
 from .loaders import JsonLoader, Loader, TomlLoader, YamlLoader
 from .utils import (
@@ -23,5 +23,5 @@ __all__ = [
     "load_config",
     "load_file",
     "xdg_config_path",
-    "_version",
+    "__version__",
 ]
