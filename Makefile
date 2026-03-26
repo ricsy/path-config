@@ -64,15 +64,17 @@ build:
 	python -m build
 	pip install dist/$(PACKAGE)-*.whl --force-reinstall
 
-# 更新版本号（修改 $(PACKAGE)/__init__.py）
+VERSION_FILE := $(PACKAGE)/__version__.py
+
+# 更新版本号（修改 $(PACKAGE)/__version__.py）
 # 用法：make bump version=X.X.X
 bump:
 	@if [ -z "$(version)" ]; then \
 		echo "Usage: make bump version=X.X.X"; \
 		exit 1; \
 	fi && \
-	sed -i 's/^__version__ = ".*"/__version__ = "$(version)"/' $(PACKAGE)/__init__.py && \
-	echo "Version bumped to $(version) (pyproject.toml reads from __init__.py)"
+	sed -i 's/^__version__ = ".*"/__version__ = "$(version)"/' $(VERSION_FILE) && \
+	echo "Version bumped to $(version) (reads from $(VERSION_FILE))"
 
 # 发布版本（更新版本号 → git commit → git tag → GitHub Release）
 # 用法：make release version=X.X.X
@@ -82,8 +84,11 @@ release:
 		echo "Usage: make release version=X.X.X"; \
 		exit 1; \
 	fi && \
-	current=$$(sed -n 's/__version__\s*=\s*"\([^"]*\)"/\1/p' $(PACKAGE)/__init__.py) && \
-	if [ "$$current" != "$(version)" ]; then \
+	current=$$(sed -n 's/__version__\s*=\s*"\([^"]*\)"/\1/p' $(VERSION_FILE)) && \
+	if [ "$$current" = "$(version)" ]; then \
+		echo "当前版本已是 v$(version)，无需更新"; \
+	else \
+		echo "当前版本: v$$current -> v$(version)"; \
 		make bump version=$(version); \
 		git add -A && \
 		git commit -m "chore: release v$(version)"; \
