@@ -402,7 +402,7 @@ class TestGetActiveConfigPath:
             env_file.write_text("key: env", encoding="utf-8")
 
             monkeypatch.setenv("MYAPP_CONFIG", str(env_file))
-            result = get_active_config_path(app="myapp")
+            result = get_active_config_path(app="myapp", use_env=True)
             assert result is not None
             assert result.resolve() == env_file.resolve()
 
@@ -444,13 +444,19 @@ class TestFromApp:
     """from_app 类方法测试"""
 
     def test_from_app_basic(self) -> None:
-        """测试基本用法"""
-        loader = ConfigLoader.from_app("claw_backup")
+        """测试基本用法（use_env=False）"""
+        loader = ConfigLoader.from_app("test_backup", use_env=False)
 
-        assert loader.env == "CLAW_BACKUP_CONFIG"
+        assert loader.env is None
         assert len(loader.paths) == 2
-        assert loader.paths[0].name == ".claw_backup.yaml"
+        assert loader.paths[0].name == ".test_backup.yaml"
         assert loader.paths[1].name == "config.yaml"
+
+    def test_from_app_with_env(self) -> None:
+        """测试启用环境变量"""
+        loader = ConfigLoader.from_app("test_backup", use_env=True)
+
+        assert loader.env == "TEST_BACKUP_CONFIG"
 
     def test_from_app_kebab_case(self) -> None:
         """测试下划线转短横线"""

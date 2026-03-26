@@ -58,7 +58,7 @@ class ConfigLoader:
         cls,
         app: str,
         *,
-        use_env: bool = False,
+        use_env: bool = True,
         ext: str = ".yaml",
     ) -> ConfigLoader:
         """从应用名称快速创建配置加载器
