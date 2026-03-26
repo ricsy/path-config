@@ -55,3 +55,15 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies: [types-pyyaml]
+
+  # pylint 本地钩子 - 与 pyproject.toml 配置保持一致
+  - repo: local
+    hooks:
+      - id: pylint-all
+        name: pylint (all rules)
+        entry: python -m pylint
+        language: system
+        files: \.py$
+        args:
+          - --disable=E0402,R0903,C0415,E1101,W0212
+          - --max-line-length=100

@@ -42,3 +42,15 @@ module = "tests.*"
 strict = false
 disallow_untyped_defs = false
 disable_error_code = ["no-untyped-def"]
+
+[tool.pylint.messages_control]
+disable = [
+    "E0402",  # relative-beyond-top-level
+    "R0903",  # too-few-public-methods
+    "C0415",  # import-outside-toplevel
+    "E1101",  # no-member
+    "W0212",  # protected-access
+]
+
+[tool.pylint.format]
+max-line-length = 100
