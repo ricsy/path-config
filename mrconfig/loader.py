@@ -19,6 +19,20 @@ def _to_env_name(name: str) -> str:
     return name.upper().replace("-", "_")
 
 
+def xdg_config_path(filename: str) -> Path:
+    r"""获取 XDG 配置目录下的文件路径
+
+    Linux/macOS/Windows: ~/.config/{filename}
+
+    Args:
+        filename: 配置文件名
+
+    Returns:
+        配置文件路径
+    """
+    return ConfigLoader.normalize_path(os.environ.get("XDG_CONFIG_HOME", "~/.config")) / filename
+
+
 class ConfigLoader:
     """多路径配置文件加载器
 
@@ -49,9 +63,9 @@ class ConfigLoader:
         self._loaders = loaders or DEFAULT_LOADERS.copy()
 
         if name:
-            self.paths.append(Path(name).expanduser().resolve())
+            self.paths.append(self.normalize_path(name))
         if xdg:
-            self.paths.append(self._xdg_config_path(xdg).expanduser().resolve())
+            self.paths.append(xdg_config_path(xdg))
 
     @classmethod
     def from_app(
@@ -111,7 +125,7 @@ class ConfigLoader:
 
         # 优先级 1：环境变量
         if self.env and (env_path := os.environ.get(self.env)):
-            paths.append(Path(env_path))
+            paths.append(self.normalize_path(env_path))
 
         # 优先级 2 & 3：路径列表
         paths.extend(self.paths)
@@ -120,13 +134,16 @@ class ConfigLoader:
         return list(dict.fromkeys(paths))
 
     @staticmethod
-    def _xdg_config_path(filename: str) -> Path:
-        """获取 XDG 配置目录下的文件路径"""
-        if os.name == "nt":
-            base = Path(os.environ.get("APPDATA", "~")).expanduser()
-        else:
-            base = Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")).expanduser()
-        return base / filename
+    def normalize_path(path: str | Path) -> Path:
+        """归一化路径：展开 ~ 和环境变量，然后解析为绝对路径。
+
+        Args:
+            path: 原始路径字符串或 Path 对象
+
+        Returns:
+            归一化后的绝对路径
+        """
+        return Path(path).expanduser().resolve()
 
     def _get_loader(self, path: Path) -> Loader | None:
         """根据文件扩展名获取加载器"""
@@ -161,7 +178,7 @@ class ConfigLoader:
         """
         # 优先级 1：环境变量
         if self.env and (env_path := os.environ.get(self.env)):
-            p = Path(env_path).expanduser().resolve()
+            p = self.normalize_path(env_path)
             if p.exists():
                 return p
 

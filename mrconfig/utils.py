@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any
 
@@ -26,7 +25,7 @@ def load_file(path: str | Path) -> dict[str, Any]:
         ValueError: 不支持的文件格式
     """
     # 展开用户目录并解析为绝对路径，避免路径攻击
-    p = Path(path).expanduser().resolve()
+    p = ConfigLoader.normalize_path(path)
 
     if not p.exists():
         raise FileNotFoundError(f"配置文件不存在: {p}")
@@ -37,20 +36,6 @@ def load_file(path: str | Path) -> dict[str, Any]:
         raise ValueError(f"不支持的文件格式: {p.suffix}")
 
     return loader.load(p.read_text(encoding="utf-8"))
-
-
-def xdg_config_path(filename: str) -> Path:
-    r"""获取 XDG 配置目录下的文件路径
-
-    Linux/macOS/Windows: ~/.config/{filename}
-
-    Args:
-        filename: 配置文件名
-
-    Returns:
-        配置文件路径
-    """
-    return Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")) / filename
 
 
 def load_config(

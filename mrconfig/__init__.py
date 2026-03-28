@@ -4,13 +4,12 @@
 """
 
 from .__version__ import __version__
-from .loader import ConfigLoader
+from .loader import ConfigLoader, xdg_config_path
 from .loaders import JsonLoader, Loader, TomlLoader, YamlLoader
 from .utils import (
     get_active_config_path,
     load_config,
     load_file,
-    xdg_config_path,
 )
 
 __all__ = [

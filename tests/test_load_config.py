@@ -195,12 +195,12 @@ class TestGetPaths:
             loader = ConfigLoader(env="TEST_CONFIG", name=".test.yaml")
 
             paths = loader.get_paths()
-            assert str(env_file) in str(paths[0])
+            assert str(env_file.resolve()) in str(paths[0])
 
     def test_get_paths_empty_for_no_config(self) -> None:
         """测试无配置时返回空列表"""
         loader = ConfigLoader()
-        assert loader.get_paths() == []
+        assert not loader.get_paths()
 
 
 class TestGetActivePath:
